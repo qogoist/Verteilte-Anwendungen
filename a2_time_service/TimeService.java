@@ -18,33 +18,36 @@ public class TimeService {
 
     public static void startService(int port) {
         Boolean exit = false;
+        
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            
+            while (true) {
+                Socket socket = serverSocket.accept();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        try {
-            ServerSocket serverSocket = new ServerSocket(port);
-            Socket socket = serverSocket.accept();
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                sendMessage("time service", writer);
 
-            sendMessage("time service", writer);
+                while (!exit) {
+                    String call = reader.readLine();
 
-            while (!exit) {
-                String call = reader.readLine();
-                String response;
-
-                switch (call) {
-                    case "time":
-                        response = Clock.time();
-                        sendMessage(response, writer);
+                    if (call == null)
                         break;
-                    case "date":
-                        response = Clock.date();
-                        sendMessage(response, writer);
-                        break;
-                    default:
-                        socket.close();
-                        serverSocket.close();
-                        break;
+
+                    switch (call) {
+                        case "time":
+                            sendMessage(Clock.time(), writer);
+                            break;
+                        case "date":
+                            sendMessage(Clock.date(), writer);
+                            break;
+                        default:
+                            exit = true;
+                            break;
+                    }
                 }
+
+                socket.close();
             }
 
         } catch (Exception e) {
